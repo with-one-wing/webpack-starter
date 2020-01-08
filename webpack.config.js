@@ -1,19 +1,18 @@
 const path = require('path');
-const webpack = require('webpack');
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const {CleanWebpackPlugin} = require('clean-webpack-plugin');
-const OptimizeCssAssetsWebpackPlugin = require('optimize-css-assets-webpack-plugin');
+const merge = require('webpack-merge');
+const developmentConfig = require('./webpack/dev');
+const optimizeImages = require('./webpack/optimizeImages');
+const optimizeCss = require('./webpack/optimizeCss');
 
-module.exports = {
+const common = {
     entry: './src/index.js',
     mode: 'production',
     output: {
         filename: 'main.js',
         path: path.resolve(__dirname, 'dist')
-    },
-    devServer: {
-        stats: "errors-only"
     },
     plugins: [
         new HtmlWebPackPlugin({
@@ -24,18 +23,6 @@ module.exports = {
             filename: "style.css"
         }),
         new CleanWebpackPlugin(),
-        new OptimizeCssAssetsWebpackPlugin({
-            assetNameRegExp: /\.css$/g,
-            cssProcessor: require('cssnano'),
-            cssProcessorPluginOptions: {
-                preset: ['default', {
-                    discardComments: {
-                        removeAll: true
-                    }
-                }]
-            },
-            canPrint: true
-        })
     ],
     module: {
         rules: [
@@ -58,17 +45,19 @@ module.exports = {
                             useRelativePath: true
                         }
                     },
-                    {
-                        loader: 'image-webpack-loader',
-                        options: {
-                            mozjpeg: {
-                                progressive: true,
-                                quality: 65
-                            },
-                        }
-                    },
                 ]
             }
         ]
     }
 };
+
+module.exports = (env) => (env === 'production') ?
+     merge([
+        common,
+        optimizeImages(),
+        optimizeCss(),
+    ]) :
+    merge([
+        common,
+        developmentConfig()
+    ]);
